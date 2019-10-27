@@ -50,8 +50,7 @@ func getObjectList(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	// TODO handle highlighted errors
-	render.RenderList(w, r, list)
+	_ = render.RenderList(w, r, list)
 }
 
 // Middleware used to load an Object instance from the URL param into the context
@@ -106,7 +105,7 @@ func postObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, ObjectIdResponse{
+	_ = render.Render(w, r, ObjectIdResponse{
 		Object: o,
 	})
 }
@@ -122,7 +121,7 @@ func deleteObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(""))
+	_, _ = w.Write([]byte(""))
 	return
 }
 
@@ -149,6 +148,5 @@ func getObjectHistory(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	// TODO handle highlighted errors
-	render.RenderList(w, r, list)
+	_ = render.RenderList(w, r, list)
 }
