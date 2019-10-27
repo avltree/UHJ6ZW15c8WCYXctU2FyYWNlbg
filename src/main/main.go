@@ -4,15 +4,24 @@ import (
 	"../object"
 	"../simplerepo"
 	"../worker"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
 )
 
-// TODO don't hardcode this
-var repo object.ObjectRepository = &simplerepo.SimpleRepo{Dsn: "root:root@tcp(mysql:3306)/object_storage?parseTime=true"}
+var repo object.ObjectRepository = &simplerepo.SimpleRepo{
+	Dsn: fmt.Sprintf(
+			"%s:%s@tcp(mysql:%s)/%s?parseTime=true",
+			os.Getenv("MYSQL_USER"),
+			os.Getenv("MYSQL_PASSWORD"),
+			os.Getenv("MYSQL_PORT"),
+			os.Getenv("MYSQL_DATABASE"),
+		),
+}
 
 func main() {
 	object.Repo = repo

@@ -8,6 +8,10 @@ services:
     environment:
       GOPATH: /gwp-api/go
       GOBIN: /gwp-api/go/bin
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: object_storage
     ports:
       - 8080:8080
     tty: true
