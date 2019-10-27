@@ -52,7 +52,6 @@ func main() {
 	})
 
 	// Start the worker...
-	// TODO error handling
 	worker.Work()
 	// ... and the HTTP server
 	err := http.ListenAndServe(":8080", r)
