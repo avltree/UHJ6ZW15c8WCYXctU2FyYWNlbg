@@ -57,6 +57,8 @@ func main() {
 	// ... and the HTTP server
 	err := http.ListenAndServe(":8080", r)
 
-	// TODO log before panicking because it's invisible from docker-compose logs
-	panic(err)
+	if nil != err {
+		log.WithFields(log.Fields{"error": err}).Error("Could not start the HTTP server")
+		panic(err)
+	}
 }
