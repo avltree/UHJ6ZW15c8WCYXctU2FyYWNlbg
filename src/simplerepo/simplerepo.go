@@ -142,6 +142,7 @@ func (repo *SimpleRepo) FindAll() ([]*object.Object, error) {
 }
 
 // Deletes object from the database
+// FIXME Could use soft delete, now all the history is lost
 func (repo *SimpleRepo) Delete(o *object.Object) error {
 	db := repo.getDbConnection()
 	defer db.Close()
