@@ -17,11 +17,17 @@ func Work() {
 }
 
 // Starts the infinite loop for the worker
-func execute()  {
+func execute() {
 	var registry = ProgressRegistry{Ids: make(map[int64]int)}
 
 	for {
-		for _, o := range Repo.FindAll() {
+		objects, err := Repo.FindAll()
+
+		if nil != err {
+			log.WithFields(log.Fields{"error": err}).Error("Could not retrieve objects from the database")
+		}
+
+		for _, o := range objects {
 			go handleObject(o, &registry)
 		}
 

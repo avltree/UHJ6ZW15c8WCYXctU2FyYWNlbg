@@ -64,9 +64,18 @@ func (repo *SimpleRepo) Save(o *object.Object) error {
 	db := repo.getDbConnection()
 	defer db.Close()
 
-	// TODO handle errors properly
 	stmt, err := db.Prepare("insert into objects(url, `interval`) values (?, ?)")
+
+	if nil != err {
+		return err
+	}
+
 	result, err := stmt.Exec(o.Url, o.Interval)
+
+	if nil != err {
+		return err
+	}
+
 	o.Id, err = result.LastInsertId()
 
 	return err
@@ -98,18 +107,17 @@ func (repo *SimpleRepo) FindOne(id int64) (*object.Object, error) {
 }
 
 // Returns all objects stored in the database
-func (repo *SimpleRepo) FindAll() []*object.Object {
+func (repo *SimpleRepo) FindAll() ([]*object.Object, error) {
 	db := repo.getDbConnection()
 	defer db.Close()
 
-	// TODO fix error handling
 	// Joins to the "response" table so the latest response retrieval date is available
 	results, err := db.Query("select o.id, o.url, o.`interval`, max(r.created_at) as last_check " +
 		"from objects o " +
 		"left join response r on o.id = r.object_id " +
 		"group by 1, 2, 3")
 	if nil != err {
-		panic(err)
+		return nil, err
 	}
 
 	var ret []*object.Object
@@ -117,8 +125,11 @@ func (repo *SimpleRepo) FindAll() []*object.Object {
 	for results.Next() {
 		var o object.Object
 		var t sql.NullTime
-		// TODO handle error
-		results.Scan(&o.Id, &o.Url, &o.Interval, &t)
+		err = results.Scan(&o.Id, &o.Url, &o.Interval, &t)
+
+		if nil != err {
+			return nil, err
+		}
 
 		if t.Valid {
 			o.LastCheck = t.Time
@@ -127,7 +138,7 @@ func (repo *SimpleRepo) FindAll() []*object.Object {
 		ret = append(ret, &o)
 	}
 
-	return ret
+	return ret, nil
 }
 
 // Deletes object from the database

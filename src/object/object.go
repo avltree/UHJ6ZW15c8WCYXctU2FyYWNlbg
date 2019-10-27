@@ -7,7 +7,7 @@ import (
 // Declares the interface for object repository so the object is decoupled from the repository implementation
 type ObjectRepository interface {
 	FindOne(id int64) (*Object, error)
-	FindAll() []*Object
+	FindAll() ([]*Object, error)
 	Delete(o *Object) error
 	Save(o *Object) error
 	AddResponse(o *Object, response string, duration time.Duration) error

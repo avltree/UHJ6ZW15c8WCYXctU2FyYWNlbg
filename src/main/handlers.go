@@ -39,8 +39,13 @@ func ConstrainPayload(next http.Handler) http.Handler {
 // Handler for the GET /api/fetcher resource
 func getObjectList(w http.ResponseWriter, r *http.Request)  {
 	var list []render.Renderer
+	objects, err := repo.FindAll()
 
-	for _, o := range repo.FindAll() {
+	if nil != err {
+		logAndRenderError(w, http.StatusInternalServerError, log.Fields{"error": err}, "Error retrieving objects")
+	}
+
+	for _, o := range objects {
 		list = append(list, ObjectResponse{Object: o})
 	}
 
