@@ -36,6 +36,7 @@ func (p *ProgressRegistry) unlock(id int64) {
 	p.mux.Unlock()
 }
 
+// TODO should return an error
 func Work() {
 	go execute()
 }
