@@ -39,4 +39,4 @@ make down
 make up
 ```
 
-The problem should disappear after the restart.t
+The problem should disappear after the restart.
