@@ -9,10 +9,13 @@ import (
 	"time"
 )
 
+// Implementation data structure, implements the repository interface from the object package
+// FIXME Make the repo capable of handling multiple requests per DB connection
 type SimpleRepo struct {
 	Dsn string
 }
 
+// Gets the object response history from MySQL database
 func (repo *SimpleRepo) GetHistory(o *object.Object) ([]*object.ObjectHistory, error) {
 	db := repo.getDbConnection()
 	defer db.Close()
@@ -40,6 +43,7 @@ func (repo *SimpleRepo) GetHistory(o *object.Object) ([]*object.ObjectHistory, e
 	return ret, nil
 }
 
+// Stores a new response for the specified object
 func (repo *SimpleRepo) AddResponse(o *object.Object, response string, duration time.Duration) error {
 	db := repo.getDbConnection()
 	defer db.Close()
@@ -54,6 +58,8 @@ func (repo *SimpleRepo) AddResponse(o *object.Object, response string, duration 
 	return err
 }
 
+// Saves an object into the database
+// Note that only "insert" operations are permitted because of my interpretation of the POST resource
 func (repo *SimpleRepo) Save(o *object.Object) error {
 	db := repo.getDbConnection()
 	defer db.Close()
@@ -66,18 +72,19 @@ func (repo *SimpleRepo) Save(o *object.Object) error {
 	return err
 }
 
+// Searches the database for a single object by its id
 func (repo *SimpleRepo) FindOne(id int64) (*object.Object, error) {
 	db := repo.getDbConnection()
 	defer db.Close()
 
 	var o object.Object
+	// FIXME not important for the app's logic, but it doesn't retrieve and "hydrate" the LastCheck property
 	result, err := db.Query("select url, `interval` from objects where id = ?", id)
 
 	if nil != err {
 		return nil, err
 	}
 
-	// TODO this and the find all should use the same "hydration"
 	success := result.Next()
 
 	if !success {
@@ -90,11 +97,13 @@ func (repo *SimpleRepo) FindOne(id int64) (*object.Object, error) {
 	return &o, err
 }
 
+// Returns all objects stored in the database
 func (repo *SimpleRepo) FindAll() []*object.Object {
 	db := repo.getDbConnection()
 	defer db.Close()
 
 	// TODO fix error handling
+	// Joins to the "response" table so the latest response retrieval date is available
 	results, err := db.Query("select o.id, o.url, o.`interval`, max(r.created_at) as last_check " +
 		"from objects o " +
 		"left join response r on o.id = r.object_id " +
@@ -121,6 +130,7 @@ func (repo *SimpleRepo) FindAll() []*object.Object {
 	return ret
 }
 
+// Deletes object from the database
 func (repo *SimpleRepo) Delete(o *object.Object) error {
 	db := repo.getDbConnection()
 	defer db.Close()
@@ -130,10 +140,9 @@ func (repo *SimpleRepo) Delete(o *object.Object) error {
 	return err
 }
 
+// Helper function to initialize and get the DB instance.
 func (repo *SimpleRepo) getDbConnection () *sql.DB {
-	// TODO don't hardcode this
 	db, err := sql.Open("mysql", repo.Dsn)
-	//db, err := sql.Open("mysql", "root:root@tcp(mysql:3306)/object_storage?parseTime=true")
 
 	if err != nil {
 		panic(err)
