@@ -13,6 +13,14 @@ import (
 	"strconv"
 )
 
+// Reusable logic to render HTTP errors and log some data if necessary
+// FIXME could be reworked not to violate the dependency inversion principle
+func logAndRenderError(w http.ResponseWriter, statusCode int, fields log.Fields, message string)  {
+	log.WithFields(fields).Error(message)
+	w.WriteHeader(statusCode)
+	_, _ = w.Write([]byte(""))
+}
+
 // Custom middleware used to return HTTP status code 413 when the request payload exceeds 1MB
 // I don't know if it's the right way to do this but I've tried to improvise ;)
 func ConstrainPayload(next http.Handler) http.Handler {
@@ -23,10 +31,7 @@ func ConstrainPayload(next http.Handler) http.Handler {
 		}).Debug("Content length")
 
 		if r.ContentLength > 1 << (10 * 2) {
-			// TODO use a function for rendering errors
-			log.Error("Payload exceeding 1 MB posted")
-			w.WriteHeader(http.StatusRequestEntityTooLarge)
-			w.Write([]byte(""))
+			logAndRenderError(w, http.StatusRequestEntityTooLarge, log.Fields{}, "Payload exceeding 1 MB posted")
 			return
 		}
 
@@ -73,33 +78,24 @@ func getObjectContext(next http.Handler) http.Handler {
 		log.WithFields(log.Fields{"id": stringId}).Info("Object id retrieved from URL")
 
 		if "" == stringId {
-			// TODO use a function for rendering errors
-			log.Error("No object id provided")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(""))
+			logAndRenderError(w, http.StatusBadRequest, log.Fields{}, "No object id provided")
 			return
 		}
 
 		id, err := strconv.Atoi(stringId)
 
 		if nil != err || id <= 0 {
-			// TODO use a function for rendering errors
-			log.WithFields(log.Fields{"id": stringId}).Error("Provided id is not a positive integer")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(""))
+			logAndRenderError(w, http.StatusBadRequest, log.Fields{"id": stringId}, "Id is not a positive integer")
 			return
 		}
 
 		o, err := repo.FindOne(int64(id))
 
 		if nil != err {
-			// TODO use a function for rendering errors
-			log.WithFields(log.Fields{
+			logAndRenderError(w, http.StatusNotFound, log.Fields{
 				"id": id,
 				"err": err,
-			}).Error("Error searching object in the database")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(""))
+			}, "Error searching object in the database")
 			return
 		}
 
@@ -149,21 +145,15 @@ func (o ObjectIdResponse) Render(w http.ResponseWriter, r *http.Request) error {
 func postObject(w http.ResponseWriter, r *http.Request) {
 	data := &ObjectRequest{}
 
-	if e := render.Bind(r, data); e != nil {
-		// TODO use a function for rendering errors
-		log.WithFields(log.Fields{"error": e}).Error("Error creating new Object")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(""))
+	if err := render.Bind(r, data); err != nil {
+		logAndRenderError(w, http.StatusBadRequest, log.Fields{"error": err}, "Error creating new Object")
 		return
 	}
 
 	o := data.Object
 
 	if err := o.Save(); err != nil {
-		// TODO use a function for rendering errors
-		log.WithFields(log.Fields{"error": err.Error()}).Error("Error saving object")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(""))
+		logAndRenderError(w, http.StatusInternalServerError, log.Fields{"error": err.Error()}, "Error saving object")
 		return
 	}
 
@@ -179,10 +169,7 @@ func deleteObject(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{"object": o}).Info("Deleting object")
 
 	if err := o.Delete(); nil != err {
-		// TODO use a function for rendering errors
-		log.WithFields(log.Fields{"error": err.Error()}).Error("Error deleting object")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(""))
+		logAndRenderError(w, http.StatusInternalServerError, log.Fields{"error": err.Error()}, "Error deleting object")
 		return
 	}
 
@@ -209,10 +196,7 @@ func getObjectHistory(w http.ResponseWriter, r *http.Request)  {
 	history, err := o.GetHistory()
 
 	if nil != err {
-		// TODO use a function for rendering errors
-		log.WithFields(log.Fields{"error": err.Error()}).Error("Error getting object history")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(""))
+		logAndRenderError(w, http.StatusInternalServerError, log.Fields{"error": err.Error()}, "Error getting object history")
 		return
 	}
 
