@@ -3,13 +3,10 @@ package main
 import (
 	"../object"
 	"context"
-	"errors"
-	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
@@ -39,20 +36,6 @@ func ConstrainPayload(next http.Handler) http.Handler {
 	})
 }
 
-// TODO move the types to a separate file
-// Used to hide JSON fields we don't want to see in our responses
-type omit bool
-
-// Custom response object, used in the object list to omit the `last_check` field
-type ObjectResponse struct {
-	*object.Object
-	LastCheck omit `json:"last_check,omitempty"`
-}
-
-func (o ObjectResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 // Handler for the GET /api/fetcher resource
 func getObjectList(w http.ResponseWriter, r *http.Request)  {
 	var list []render.Renderer
@@ -62,7 +45,8 @@ func getObjectList(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	if 0 == len(list) {
-		w.Write([]byte("[]"))
+		// A workaround for an empty list, because the renderer renders 'null' instead of an empty array
+		_, _ = w.Write([]byte("[]"))
 		return
 	}
 
@@ -105,42 +89,6 @@ func getObjectContext(next http.Handler) http.Handler {
 	})
 }
 
-// Payload for the Object instance, used mostly to validate the POST data
-type ObjectRequest struct {
-	*object.Object
-}
-
-func (or ObjectRequest) Bind(r *http.Request) error {
-	o := or.Object
-	log.WithFields(log.Fields{"object": o}).Info("Object data received from API")
-
-	if nil == o {
-		return errors.New("data incompatible with Object type")
-	}
-
-	if o.Url == "" {
-		return errors.New("empty URL")
-	}
-
-	if u, err := url.Parse(o.Url); err != nil || u.Scheme == "" || u.Host == "" {
-		return errors.New(fmt.Sprintf("provided URL \"%s\" is invalid", o.Url))
-	}
-
-	return nil
-}
-
-// Another custom response for Object, this one strips fields other than the id.
-type ObjectIdResponse struct {
-	*object.Object
-	Url omit `json:"url,omitempty"`
-	Interval omit `json:"interval,omitempty"`
-	LastCheck omit `json:"last_check,omitempty"`
-}
-
-func (o ObjectIdResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 // Handler for the POST api/fetcher resource.
 func postObject(w http.ResponseWriter, r *http.Request) {
 	data := &ObjectRequest{}
@@ -178,15 +126,6 @@ func deleteObject(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Custom response object for the ObjectHistory instances.
-type ObjectHistoryResponse struct {
-	*object.ObjectHistory
-}
-
-func (o ObjectHistoryResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 // Handler for the GET api/fetcher/<id>/history resource.
 func getObjectHistory(w http.ResponseWriter, r *http.Request)  {
 	o := r.Context().Value("object").(*object.Object)
@@ -206,7 +145,7 @@ func getObjectHistory(w http.ResponseWriter, r *http.Request)  {
 
 	if 0 == len(list) {
 		// A workaround for an empty list, because the renderer renders 'null' instead of an empty array
-		w.Write([]byte("[]"))
+		_, _ = w.Write([]byte("[]"))
 		return
 	}
 
