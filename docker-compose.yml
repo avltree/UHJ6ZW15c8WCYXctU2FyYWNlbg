@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  go:
+    build: .
+    volumes:
+      - .:/gwp-api
+    environment:
+      GOPATH: /gwp-api/go
+      GOBIN: /gwp-api/go/bin
+    ports:
+      - 8080:8080
+    tty: true
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: object_storage
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    restart: always
+    ports:
+      - 8081:3306
+
+volumes:
+  mysql-data:
+
