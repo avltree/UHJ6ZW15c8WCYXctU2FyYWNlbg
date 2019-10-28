@@ -56,14 +56,27 @@ func handleObject(o *object.Object, r *ProgressRegistry) {
 			"interval":   o.Interval,
 		}).Info("Interval passed after last check, retrieving response")
 
-		// TODO handle errors
 		// Wait max 5 seconds for a response
 		client := &http.Client{Timeout: 5 * time.Second}
 		startTime := time.Now()
-		response, _ := client.Get(o.Url)
+		response, err := client.Get(o.Url)
+
+		if nil != err {
+			log.WithFields(log.Fields{"error": err}).Error("Error fetching response")
+			r.unlock(o.Id)
+			return
+		}
+
 		duration := time.Now().Sub(startTime)
-		body, _ := ioutil.ReadAll(response.Body)
+		body, err := ioutil.ReadAll(response.Body)
 		response.Body.Close()
+
+		if nil != err {
+			log.WithFields(log.Fields{"error": err}).Error("Response body could not be read")
+			r.unlock(o.Id)
+			return
+		}
+
 		bodyString := string(body)
 		log.WithFields(log.Fields{"response": bodyString}).Info("Response received")
 
